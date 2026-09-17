@@ -1,0 +1,13 @@
+{
+    "name": "Zombix Server",
+    "image": "mcr.microsoft.com/devcontainers/python:3.11",
+    "postCreateCommand": "pip install -r requirements.txt",
+    "forwardPorts": [10000],
+    "portsAttributes": {
+        "10000": {
+            "label": "Zombix Server",
+            "onAutoForward": "notify",
+            "visibility": "public"
+        }
+    }
+}
