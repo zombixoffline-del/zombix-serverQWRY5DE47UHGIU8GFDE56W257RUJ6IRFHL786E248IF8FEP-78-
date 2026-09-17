@@ -1,0 +1,2 @@
+# zombix-serverQWRY5DE47UHGIU8GFDE56W257RUJ6IRFHL786E248IF8FEP-78-
+ыпыкрпвукрувкрукрврквкр
