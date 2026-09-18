@@ -1,13 +1,10 @@
-import eventlet
-eventlet.monkey_patch()
-
 from flask import Flask, request
 from flask_socketio import SocketIO, emit
 import time
 import os
 
 app = Flask(__name__)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 players = {}
 
@@ -20,6 +17,7 @@ def handle_register(data):
     players[request.sid] = {
         "x": 0, "y": 0, "dir": "down", "anim": "idle",
         "loc": "home", "char": "fighter", "bike": False,
+        "rolling": False, "pet": None,
         "name": data.get("name", "Player"),
         "last_seen": time.time()
     }
@@ -39,6 +37,8 @@ def handle_state(data):
         "loc": data.get("loc", "home"),
         "char": data.get("char", "fighter"),
         "bike": data.get("bike", False),
+        "rolling": data.get("rolling", False),
+        "pet": data.get("pet", None),
         "last_seen": time.time()
     })
     state_out = {
@@ -50,9 +50,26 @@ def handle_state(data):
         "loc": players[request.sid]["loc"],
         "char": players[request.sid]["char"],
         "bike": players[request.sid]["bike"],
+        "rolling": players[request.sid].get("rolling", False),
+        "pet": players[request.sid].get("pet", None),
         "name": players[request.sid]["name"],
     }
     emit("player_update", state_out, broadcast=True, include_self=False)
+
+@socketio.on("chat")
+def handle_chat(data):
+    if request.sid not in players:
+        return
+    msg = str(data.get("text", ""))[:200]
+    if not msg.strip():
+        return
+    payload = {
+        "sid": request.sid,
+        "name": players[request.sid].get("name", "Player"),
+        "text": msg,
+        "ts": time.time(),
+    }
+    emit("chat", payload, broadcast=True)
 
 @socketio.on("disconnect")
 def on_disconnect():
@@ -66,17 +83,6 @@ def handle_ping():
     if request.sid in players:
         players[request.sid]["last_seen"] = time.time()
 
-def cleanup_loop():
-    while True:
-        eventlet.sleep(15)
-        now = time.time()
-        dead = [sid for sid, p in players.items() if now - p.get("last_seen", 0) > 30]
-        for sid in dead:
-            del players[sid]
-            socketio.emit("player_left", {"sid": sid})
-
-eventlet.spawn(cleanup_loop)
-
 @app.route("/")
 def index():
     return "Zombix Server. Players online: " + str(len(players))
@@ -84,4 +90,4 @@ def index():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     print("Server starting on port", port)
-    socketio.run(app, host="0.0.0.0", port=port)
+    socketio.run(app, host="0.0.0.0", port=port, allow_unsafe_werkzeug=True)
