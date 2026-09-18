@@ -50,8 +50,8 @@ def handle_state(data):
         "loc": players[request.sid]["loc"],
         "char": players[request.sid]["char"],
         "bike": players[request.sid]["bike"],
-        "rolling": players[request.sid].get("rolling", False),
-        "pet": players[request.sid].get("pet", None),
+        "rolling": players[request.sid]["rolling"],
+        "pet": players[request.sid]["pet"],
         "name": players[request.sid]["name"],
     }
     emit("player_update", state_out, broadcast=True, include_self=False)
